@@ -1,0 +1,8 @@
+$ cat .gitignore
+
+Applications
+bin
+obj
+*.user
+*.suo
+Storage

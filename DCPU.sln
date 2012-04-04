@@ -1,0 +1,20 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 11.00
+# Visual Studio 2010
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DCPU.VM", "DCPU.VM\DCPU.VM.csproj", "{6F1995CC-E4A8-40A0-8115-57F1599BC109}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|x86 = Debug|x86
+		Release|x86 = Release|x86
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{6F1995CC-E4A8-40A0-8115-57F1599BC109}.Debug|x86.ActiveCfg = Debug|x86
+		{6F1995CC-E4A8-40A0-8115-57F1599BC109}.Debug|x86.Build.0 = Debug|x86
+		{6F1995CC-E4A8-40A0-8115-57F1599BC109}.Release|x86.ActiveCfg = Release|x86
+		{6F1995CC-E4A8-40A0-8115-57F1599BC109}.Release|x86.Build.0 = Release|x86
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
