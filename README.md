@@ -1,5 +1,5 @@
 # C# / .NET DCPU-16 implementation #
-A C# / .NET based implementation of DCPU-16, written by Notch.
+A C# / .NET based implementation of DCPU-16, a CPU used by the new game 0x10c written by Notch.
 See: http://0x10c.com/doc/dcpu-16.txt
 
 ## What for? ##
