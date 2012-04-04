@@ -384,7 +384,7 @@ namespace DCPU.VM
 				stopwatch.Start();
 
 				long lastTime = 0, currentTime = 0, waitTime = 0;
-				while (Thread.CurrentThread.ThreadState == System.Threading.ThreadState.Running)
+				while (Thread.CurrentThread.ThreadState == System.Threading.ThreadState.Background)
 				{
 					currentTime = stopwatch.ElapsedTicks;
 					if (currentTime - lastTime > waitTime)
