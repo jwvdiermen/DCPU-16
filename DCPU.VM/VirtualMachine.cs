@@ -221,52 +221,6 @@ namespace DCPU.VM
 			return buffer[offset];
 		}
 
-		//private void SetValue(int code, int value, ref int cycles)
-		//{
-		//    if (code < 0x08)
-		//    {
-		//        m_dcpu.Registers[code] = (ushort)value;
-		//    }
-		//    else if (code < 0x10)
-		//    {
-		//        m_dcpu.Memory[m_dcpu.Registers[code - 0x08]] = (ushort)value;
-		//    }
-		//    else if (code < 0x18)
-		//    {
-		//        cycles++;
-		//        m_dcpu.Memory[m_dcpu.Registers[code - 0x10] + IncrementProgramCounter()] = (ushort)value;
-		//    }
-		//    else if (code == 0x18)
-		//    {
-		//        throw new InvalidOperationException("PUSH does not return a value.");
-		//    }
-		//    else if (code == 0x19)
-		//    {
-		//        m_dcpu.Memory[m_dcpu.StackPointer] = (ushort)value;
-		//    }
-		//    else if (code == 0x1A)
-		//    {
-		//        m_dcpu.Memory[--m_dcpu.StackPointer] = (ushort)value;
-		//    }
-		//    else if (code == 0x1B)
-		//    {
-		//        m_dcpu.StackPointer = (ushort)value;
-		//    }
-		//    else if (code == 0x1C)
-		//    {
-		//        m_dcpu.ProgramCounter = (ushort)value;
-		//    }
-		//    else if (code == 0x1D)
-		//    {
-		//        m_dcpu.Overflow = (ushort)value;
-		//    }
-		//    else if (code == 0x1E)
-		//    {
-		//        cycles++;
-		//        m_dcpu.Memory[IncrementProgramCounter()] = (ushort)value;
-		//    }
-		//}
-
 		private ushort CheckOverflow(int va, int vb, Func<int, int, int> operationFn, Func<int, int, int> overflowFn)
 		{
 			int value = operationFn(va, vb);
