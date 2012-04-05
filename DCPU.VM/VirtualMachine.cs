@@ -68,6 +68,23 @@ namespace DCPU.VM
 
 		#endregion
 
+		#region Events
+
+		/// <summary>
+		/// Fired when the DCPU has been halted.
+		/// </summary>
+		public event DCPUHaltedEvent Halted;
+
+		private void OnHalted()
+		{
+			if (this.Halted != null)
+			{
+				this.Halted(this, m_dcpu);
+			}
+		}
+
+		#endregion
+
 		#region Methods
 
 		/// <summary>
@@ -123,18 +140,18 @@ namespace DCPU.VM
 			int result = 1;
 			if ((code & 0xF) == 0)
 			{
-				result += IsLongValue(code >> 10) == true ? 1 : 0;
+				result += IsNextWord(code >> 10) == true ? 1 : 0;
 			}
 			else
 			{
-				result += IsLongValue((code >> 4) & 0x3F) == true ? 1 : 0;
-				result += IsLongValue(code >> 10) == true ? 1 : 0;
+				result += IsNextWord((code >> 4) & 0x3F) == true ? 1 : 0;
+				result += IsNextWord(code >> 10) == true ? 1 : 0;
 			}
 
 			return result;
 		}
 
-		private bool IsLongValue(int value)
+		private bool IsNextWord(int value)
 		{
 			return (value >= 0x10 && value <= 0x17) ||
 				value == 0x1E || value == 0x1F;
@@ -246,6 +263,8 @@ namespace DCPU.VM
 				case 0x1F:
 					{
 						// Use a temporary value here because it is literal, which should not be writable.
+						// According the Notch's specifications, literal values should not be writable. Any attempt
+						// should fail silently.
 						ushort tmp = m_dcpu.Memory[m_dcpu.ProgramCounter++];
 						del(ref tmp);
 					}
@@ -260,7 +279,7 @@ namespace DCPU.VM
 			}
 		}
 
-		private ushort CheckOverflow(int va, int vb, Func<int, int, int> operationFn, Func<int, int, int> overflowFn)
+		private ushort Overflow(int va, int vb, Func<int, int, int> operationFn, Func<int, int, int> overflowFn)
 		{
 			int value = operationFn(va, vb);
 			m_dcpu.Overflow = (ushort)overflowFn(va, vb);
@@ -275,6 +294,7 @@ namespace DCPU.VM
 		public int Step()
 		{
 			int cycles = 0;
+			ushort currentPC = m_dcpu.ProgramCounter;
 
 			// Determine the opcode.
 			BasicOpcodes basicOpcode;
@@ -295,11 +315,6 @@ namespace DCPU.VM
 							case ExtendedOpcodes.JSR:
 								{
 									cycles += 2;
-
-									//SetValue(0x1A, GetValue(0x1C, ref cycles), ref cycles); // Simulate "SET PUSH, PC".
-									//SetValue(0x1C, pa, ref cycles); // Simulate "SET PC, a".
-
-									// Do this inline instead.
 									m_dcpu.Memory[--m_dcpu.StackPointer] = m_dcpu.ProgramCounter;
 									m_dcpu.ProgramCounter = (ushort)va;
 								}
@@ -325,26 +340,33 @@ namespace DCPU.VM
 							case BasicOpcodes.SET:
 								cycles++;
 								va = vb;
+
+								// Detect an infinite loop and halt.
+								if (ca == 0x1C && cb >= 0x1F && vb == currentPC)
+								{
+									m_dcpu.Halt = true;
+								}
+
 								break;
 
 							case BasicOpcodes.ADD:
 								cycles++;
-								va = CheckOverflow(va, vb, (pa, pb) => pa + pb, (pa, pb) => (pa + pb) > 0xFFFF ? 0x0001 : 0x0);
+								va = Overflow(va, vb, (pa, pb) => pa + pb, (pa, pb) => (pa + pb) > 0xFFFF ? 0x0001 : 0x0);
 								break;
 
 							case BasicOpcodes.SUB:
 								cycles++;
-								va = CheckOverflow(va, vb, (pa, pb) => pa - pb, (pa, pb) => (pa + pb) < 0 ? 0xFFFF : 0x0);
+								va = Overflow(va, vb, (pa, pb) => pa - pb, (pa, pb) => (pa + pb) < 0 ? 0xFFFF : 0x0);
 								break;
 
 							case BasicOpcodes.MUL:
 								cycles += 2;
-								va = CheckOverflow(va, vb, (pa, pb) => pa * pb, (pa, pb) => ((pa * pb) >> 16) & 0xFFFF);
+								va = Overflow(va, vb, (pa, pb) => pa * pb, (pa, pb) => ((pa * pb) >> 16) & 0xFFFF);
 								break;
 
 							case BasicOpcodes.DIV:
 								cycles += 3;
-								va = vb == 0 ? (m_dcpu.Overflow = 0) : CheckOverflow(va, vb, (pa, pb) => pa / pb, (pa, pb) => ((pa << 16) / pb) & 0xFFFF);
+								va = vb == 0 ? (m_dcpu.Overflow = 0) : Overflow(va, vb, (pa, pb) => pa / pb, (pa, pb) => ((pa << 16) / pb) & 0xFFFF);
 								break;
 
 							case BasicOpcodes.MOD:
@@ -354,12 +376,12 @@ namespace DCPU.VM
 
 							case BasicOpcodes.SHL:
 								cycles += 2;
-								va = CheckOverflow(va, vb, (pa, pb) => pa << pb, (pa, pb) => ((pa << pb) >> 16) & 0xFFFF);
+								va = Overflow(va, vb, (pa, pb) => pa << pb, (pa, pb) => ((pa << pb) >> 16) & 0xFFFF);
 								break;
 
 							case BasicOpcodes.SHR:
 								cycles += 2;
-								va = CheckOverflow(va, vb, (pa, pb) => pa >> pb, (pa, pb) => ((pa << 16) >> pb) & 0xFFFF);
+								va = Overflow(va, vb, (pa, pb) => pa >> pb, (pa, pb) => ((pa << 16) >> pb) & 0xFFFF);
 								break;
 
 							case BasicOpcodes.AND:
@@ -422,7 +444,7 @@ namespace DCPU.VM
 				stopwatch.Start();
 
 				long lastTime = 0, currentTime = 0, waitTime = 0;
-				while (Thread.CurrentThread.ThreadState == System.Threading.ThreadState.Background)
+				while (Thread.CurrentThread.ThreadState == System.Threading.ThreadState.Background && m_dcpu.Halt == false)
 				{
 					currentTime = stopwatch.ElapsedTicks;
 					if (currentTime - lastTime > waitTime)
@@ -434,6 +456,12 @@ namespace DCPU.VM
 					{
 						Thread.Yield();
 					}
+				}
+
+				// Fire the halted event if necessary.
+				if (m_dcpu.Halt == true)
+				{
+					OnHalted();
 				}
 			}
 			finally

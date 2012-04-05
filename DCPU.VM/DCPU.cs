@@ -73,11 +73,10 @@ namespace DCPU.VM
 		/// </summary>
 		public ushort[] Memory = new ushort[0x10000];
 
-		#endregion
-
-		#region Properties
-
-		
+		/// <summary>
+		/// True if the DCPU received a halt signal.
+		/// </summary>
+		public bool Halt = false;
 
 		#endregion
 
@@ -85,8 +84,21 @@ namespace DCPU.VM
 
 		public override string ToString()
 		{
-			return String.Format("{0:x4} {1:x4} {2:x4} {3:x4} {4:x4} {5:x4} {6:x4} {7:x4} {8:x4} {9:x4} {10:x4}",
+			return ToString(false);
+		}
+
+		public string ToString(bool printHeader)
+		{
+			var sb = new StringBuilder();
+			if (printHeader)
+			{
+				sb.AppendLine("PC   SP   OV   A    B    C    X    Y    Z    I    J");
+				sb.AppendLine("---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ----");
+			}
+			sb.AppendFormat("{0:x4} {1:x4} {2:x4} {3:x4} {4:x4} {5:x4} {6:x4} {7:x4} {8:x4} {9:x4} {10:x4}",
 				ProgramCounter, StackPointer, Overflow, A, B, C, X, Y, Z, I, J);
+
+			return sb.ToString();
 		}
 
 		#endregion

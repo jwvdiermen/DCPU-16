@@ -28,27 +28,53 @@ namespace DCPU.VM
 			var vm = new VirtualMachine();
 			vm.Load(program);
 
-			// Write the header.
-			Console.WriteLine("PC   SP   OV   A    B    C    X    Y    Z    I    J");
-			Console.WriteLine("---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ----");
+			// Run the program step by step.
+			//RunStepByStep(vm);
 
+			// Run the program in its own thread.
+			RunThreaded(vm);
+		}
+
+		private static void RunStepByStep(VirtualMachine vm)
+		{
+			Console.WriteLine("Press any key to step through the program.");
+			Console.WriteLine("Press Q to quit.");
+			Console.WriteLine();
+
+			int counter = 0;
 			while (true)
 			{
 				// Wait for a key press.
 				// Quit the program when the Q key has been pressed.
-				if (System.Diagnostics.Debugger.IsAttached == false && Console.ReadKey(true).Key == ConsoleKey.Q)
+				if ((System.Diagnostics.Debugger.IsAttached == false && Console.ReadKey(true).Key == ConsoleKey.Q) ||
+					vm.DCPU.Halt == true)
 				{
 					break;
 				}
 
 				// Step the DCPU.
 				vm.Step();
-				Console.WriteLine(vm.DCPU.ToString());
+				Console.WriteLine(vm.DCPU.ToString((counter++ % 15) == 0));
 			}
 
-			//vm.Start();
-			//Console.ReadKey(true);
-			//vm.Stop();
+			if (vm.DCPU.Halt == true)
+			{
+				Console.WriteLine("The DCPU has halted.");
+			}
+		}
+
+		private static void RunThreaded(VirtualMachine vm)
+		{
+			vm.Halted += (_vm, dcpu) =>
+				{
+					Console.WriteLine("The DCPU has halted.");
+					Console.WriteLine();
+					Console.WriteLine(dcpu.ToString(true));
+				};
+
+			vm.Start();
+			Console.ReadKey(true);
+			vm.Stop();
 		}
 	}
 }

@@ -45,6 +45,7 @@
   <ItemGroup>
     <Compile Include="BasicOpcodes.cs" />
     <Compile Include="DCPU.cs" />
+    <Compile Include="DCPUHaltedEvent.cs" />
     <Compile Include="ExtendedOpcodes.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
