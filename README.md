@@ -14,12 +14,7 @@ So what can you expect?
 * A compiler and linker for working with multiple files.
 * A testing environment with virtual screen and keyboard.
 * Additional I/O when released by Notch.
-
-This project will have a virtual machine (with I/O when available in de specifications)
-
-and a simple editor for compiling DCPU-16 assembly, and maybe debugging later.
-
-More to continue!!!
+* And much more...
 
 ## ToDo ##
 
