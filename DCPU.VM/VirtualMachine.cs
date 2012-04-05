@@ -284,7 +284,7 @@ namespace DCPU.VM
 			int value = operationFn(va, vb);
 			m_dcpu.Overflow = (ushort)overflowFn(va, vb);
 
-			return (ushort)(value & 0xFFFF);
+			return (ushort)value;
 		}
 
 		/// <summary>
@@ -351,12 +351,16 @@ namespace DCPU.VM
 
 							case BasicOpcodes.ADD:
 								cycles++;
-								va = Overflow(va, vb, (pa, pb) => pa + pb, (pa, pb) => (pa + pb) > 0xFFFF ? 0x0001 : 0x0);
+								// Specification clearly states: "sets O to 0x0001 if there's an overflow, 0x0 otherwise", but that doesn't seem logical.
+								//va = Overflow(va, vb, (pa, pb) => pa + pb, (pa, pb) => (pa + pb) > 0xFFFF ? 0x0001 : 0x0);
+								va = Overflow(va, vb, (pa, pb) => pa + pb, (pa, pb) => (pa + pb) >> 16);
 								break;
 
 							case BasicOpcodes.SUB:
 								cycles++;
-								va = Overflow(va, vb, (pa, pb) => pa - pb, (pa, pb) => (pa + pb) < 0 ? 0xFFFF : 0x0);
+								// Specification clearly states: "sets O to 0xffff if there's an underflow, 0x0 otherwise", but that doesn't seem logical.
+								//va = Overflow(va, vb, (pa, pb) => pa - pb, (pa, pb) => (pa - pb) < 0 ? 0xFFFF : 0x0);
+								va = Overflow(va, vb, (pa, pb) => pa - pb, (pa, pb) => (pa - pb) >> 16);
 								break;
 
 							case BasicOpcodes.MUL:
