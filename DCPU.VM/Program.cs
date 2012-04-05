@@ -32,23 +32,23 @@ namespace DCPU.VM
 			Console.WriteLine("PC   SP   OV   A    B    C    X    Y    Z    I    J");
 			Console.WriteLine("---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ----");
 
-			//while (true)
-			//{
-			//    // Wait for a key press.
-			//    // Quit the program when the Q key has been pressed.
-			//    if (System.Diagnostics.Debugger.IsAttached == false && Console.ReadKey(true).Key == ConsoleKey.Q)
-			//    {
-			//        break;
-			//    }
+			while (true)
+			{
+				// Wait for a key press.
+				// Quit the program when the Q key has been pressed.
+				if (System.Diagnostics.Debugger.IsAttached == false && Console.ReadKey(true).Key == ConsoleKey.Q)
+				{
+					break;
+				}
 
-			//    // Step the DCPU.
-			//    vm.Step();
-			//    Console.WriteLine(vm.DCPU.ToString());
-			//}
+				// Step the DCPU.
+				vm.Step();
+				Console.WriteLine(vm.DCPU.ToString());
+			}
 
-			vm.Start();
-			Console.ReadKey(true);
-			vm.Stop();
+			//vm.Start();
+			//Console.ReadKey(true);
+			//vm.Stop();
 		}
 	}
 }

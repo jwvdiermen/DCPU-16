@@ -114,11 +114,6 @@ namespace DCPU.VM
 			}
 		}
 
-		private int IncrementProgramCounter()
-		{
-			return m_dcpu.Memory[m_dcpu.ProgramCounter++];
-		}
-
 		private int InstructionLength(int code)
 		{
 			// Check if there are instruction to read the next word,
@@ -145,80 +140,124 @@ namespace DCPU.VM
 				value == 0x1E || value == 0x1F;
 		}
 
-		private int GetValue(int code, out ushort[] buffer, out int offset, out bool isLiteral, ref int cycles)
+		private delegate void GetValueDelegate(ref ushort value);
+		private void GetValue(int code, ref int cycles, GetValueDelegate del)
 		{
-			isLiteral = false;
+			switch (code)
+			{
+				case 0x00:
+					del(ref m_dcpu.A);
+					break;
+				case 0x01:
+					del(ref m_dcpu.B);
+					break;
+				case 0x02:
+					del(ref m_dcpu.C);
+					break;
+				case 0x03:
+					del(ref m_dcpu.X);
+					break;
+				case 0x04:
+					del(ref m_dcpu.Y);
+					break;
+				case 0x05:
+					del(ref m_dcpu.Z);
+					break;
+				case 0x06:
+					del(ref m_dcpu.I);
+					break;
+				case 0x07:
+					del(ref m_dcpu.J);
+					break;
 
-			if (code < 0x08)
-			{
-				buffer = m_dcpu.Registers;
-				offset = code;
-			}
-			else if (code < 0x10)
-			{
-				buffer = m_dcpu.Memory;
-				offset = m_dcpu.Registers[code - 0x08];
-			}
-			else if (code < 0x18)
-			{
-				buffer = m_dcpu.Memory;
-				offset = m_dcpu.Registers[code - 0x10] + IncrementProgramCounter();
+				case 0x08:
+					del(ref m_dcpu.Memory[m_dcpu.A]);
+					break;
+				case 0x09:
+					del(ref m_dcpu.Memory[m_dcpu.B]);
+					break;
+				case 0x0A:
+					del(ref m_dcpu.Memory[m_dcpu.C]);
+					break;
+				case 0x0B:
+					del(ref m_dcpu.Memory[m_dcpu.X]);
+					break;
+				case 0x0C:
+					del(ref m_dcpu.Memory[m_dcpu.Y]);
+					break;
+				case 0x0D:
+					del(ref m_dcpu.Memory[m_dcpu.Z]);
+					break;
+				case 0x0E:
+					del(ref m_dcpu.Memory[m_dcpu.I]);
+					break;
+				case 0x0F:
+					del(ref m_dcpu.Memory[m_dcpu.J]);
+					break;
 
-				cycles++;
-			}
-			else if (code == 0x18)
-			{
-				buffer = m_dcpu.Memory;
-				offset = m_dcpu.StackPointer++;
-			}
-			else if (code == 0x19)
-			{
-				buffer = m_dcpu.Memory;
-				offset = m_dcpu.StackPointer;
-			}
-			else if (code == 0x1A)
-			{
-				buffer = m_dcpu.Memory;
-				offset = --m_dcpu.StackPointer;
-			}
-			else if (code == 0x1B)
-			{
-				buffer = m_dcpu.Misc;
-				offset = 0; // StackPointer
-			}
-			else if (code == 0x1C)
-			{
-				buffer = m_dcpu.Misc;
-				offset = 1; // ProgramCounter
-			}
-			else if (code == 0x1D)
-			{
-				buffer = m_dcpu.Misc;
-				offset = 2; // Overflow
-			}
-			else if (code == 0x1E)
-			{
-				buffer = m_dcpu.Memory;
-				offset = IncrementProgramCounter();
+				case 0x10:
+					del(ref m_dcpu.Memory[m_dcpu.A + m_dcpu.Memory[m_dcpu.ProgramCounter++]]);
+					break;
+				case 0x11:
+					del(ref m_dcpu.Memory[m_dcpu.B + m_dcpu.Memory[m_dcpu.ProgramCounter++]]);
+					break;
+				case 0x12:
+					del(ref m_dcpu.Memory[m_dcpu.C + m_dcpu.Memory[m_dcpu.ProgramCounter++]]);
+					break;
+				case 0x13:
+					del(ref m_dcpu.Memory[m_dcpu.X + m_dcpu.Memory[m_dcpu.ProgramCounter++]]);
+					break;
+				case 0x14:
+					del(ref m_dcpu.Memory[m_dcpu.Y + m_dcpu.Memory[m_dcpu.ProgramCounter++]]);
+					break;
+				case 0x15:
+					del(ref m_dcpu.Memory[m_dcpu.Z + m_dcpu.Memory[m_dcpu.ProgramCounter++]]);
+					break;
+				case 0x16:
+					del(ref m_dcpu.Memory[m_dcpu.I + m_dcpu.Memory[m_dcpu.ProgramCounter++]]);
+					break;
+				case 0x17:
+					del(ref m_dcpu.Memory[m_dcpu.J + m_dcpu.Memory[m_dcpu.ProgramCounter++]]);
+					break;
 
-				cycles++;
-			}
-			else if (code == 0x1F)
-			{
-				buffer = m_dcpu.Memory;
-				offset = m_dcpu.ProgramCounter++;
-				isLiteral = true;
+				case 0x18:
+					del(ref m_dcpu.Memory[m_dcpu.StackPointer++]);
+					break;
+				case 0x19:
+					del(ref m_dcpu.Memory[m_dcpu.StackPointer]);
+					break;
+				case 0x1A:
+					del(ref m_dcpu.Memory[--m_dcpu.StackPointer]);
+					break;
 
-				cycles++;
-			}
-			else
-			{
-				buffer = ms_literals;
-				offset = code - 0x20;
-				isLiteral = true;
-			}
+				case 0x1B:
+					del(ref m_dcpu.StackPointer);
+					break;
+				case 0x1C:
+					del(ref m_dcpu.ProgramCounter);
+					break;
+				case 0x1D:
+					del(ref m_dcpu.Overflow);
+					break;
 
-			return buffer[offset];
+				case 0x1E:
+					del(ref m_dcpu.Memory[m_dcpu.Memory[m_dcpu.ProgramCounter++]]);
+					break;
+				case 0x1F:
+					{
+						// Use a temporary value here because it is literal, which should not be writable.
+						ushort tmp = m_dcpu.Memory[m_dcpu.ProgramCounter++];
+						del(ref tmp);
+					}
+					break;
+
+				default:
+					{
+						ushort tmp = (ushort)(code - 0x20);
+						del(ref tmp);
+					}
+					break;
+			}
 		}
 
 		private ushort CheckOverflow(int va, int vb, Func<int, int, int> operationFn, Func<int, int, int> overflowFn)
@@ -235,14 +274,13 @@ namespace DCPU.VM
 		/// <returns>The number of necessary cycles to complete the step</returns>
 		public int Step()
 		{
-			bool d;
 			int cycles = 0;
 
 			// Determine the opcode.
 			BasicOpcodes basicOpcode;
 			ExtendedOpcodes extendedOpcode = ExtendedOpcodes.Reserved;
 
-			int firstWord = IncrementProgramCounter();
+			int firstWord = m_dcpu.Memory[m_dcpu.ProgramCounter++];
 			basicOpcode = (BasicOpcodes)(firstWord & 0xF);
 
 			if (basicOpcode == BasicOpcodes.NonBasic)
@@ -250,126 +288,126 @@ namespace DCPU.VM
 				extendedOpcode = (ExtendedOpcodes)((firstWord >> 4) & 0x3F);
 
 				int ca = firstWord >> 10;
-				ushort[] ba; int oa;
-				var va = GetValue(ca, out ba, out oa, out d, ref cycles);
-
-				switch (extendedOpcode)
-				{
-					case ExtendedOpcodes.JSR:
+				GetValue(ca, ref cycles, (ref ushort va) =>
+					{
+						switch (extendedOpcode)
 						{
-							cycles += 2;
+							case ExtendedOpcodes.JSR:
+								{
+									cycles += 2;
 
-							//SetValue(0x1A, GetValue(0x1C, ref cycles), ref cycles); // Simulate "SET PUSH, PC".
-							//SetValue(0x1C, pa, ref cycles); // Simulate "SET PC, a".
-							
-							// Do this inline instead.
-							m_dcpu.Memory[--m_dcpu.StackPointer] = m_dcpu.ProgramCounter;
-							m_dcpu.ProgramCounter = (ushort)va;
+									//SetValue(0x1A, GetValue(0x1C, ref cycles), ref cycles); // Simulate "SET PUSH, PC".
+									//SetValue(0x1C, pa, ref cycles); // Simulate "SET PC, a".
+
+									// Do this inline instead.
+									m_dcpu.Memory[--m_dcpu.StackPointer] = m_dcpu.ProgramCounter;
+									m_dcpu.ProgramCounter = (ushort)va;
+								}
+								break;
+
+							default:
+								throw new InvalidOperationException(String.Format("Unkown extended opcode 0x{0:x4}.", (int)extendedOpcode));
 						}
-						break;
-
-					default:
-						throw new InvalidOperationException(String.Format("Unkown extended opcode 0x{0:x4}.", (int)extendedOpcode));
-				}
+					});				
 			}
 			else
-			{				
+			{
 				int ca = (firstWord >> 4) & 0x3F;
-				ushort[] ba; int oa; bool skipAssign;
-				var va = GetValue(ca, out ba, out oa, out skipAssign, ref cycles);
+				GetValue(ca, ref cycles, (ref ushort va) =>
+					{
+						int cb = firstWord >> 10;
+						ushort vb = 0;
+						GetValue(cb, ref cycles, (ref ushort tvb) => vb = tvb);
 
-				int cb = firstWord >> 10;
-				ushort[] bb; int ob;
-				var vb = GetValue(cb, out bb, out ob, out d, ref cycles);
+						bool res = true;
+						switch (basicOpcode)
+						{
+							case BasicOpcodes.SET:
+								cycles++;
+								va = vb;
+								break;
 
-				bool res = true;
-				switch (basicOpcode)
-				{
-					case BasicOpcodes.SET:
-						cycles++;
-						if (skipAssign == false) ba[oa] = bb[ob];
-						break;
+							case BasicOpcodes.ADD:
+								cycles++;
+								va = CheckOverflow(va, vb, (pa, pb) => pa + pb, (pa, pb) => (pa + pb) > 0xFFFF ? 0x0001 : 0x0);
+								break;
 
-					case BasicOpcodes.ADD:
-						cycles++;
-						if (skipAssign == false) ba[oa] = CheckOverflow(ba[oa], bb[ob], (pa, pb) => pa + pb, (pa, pb) => (pa + pb) > 0xFFFF ? 0x0001 : 0x0);
-						break;
+							case BasicOpcodes.SUB:
+								cycles++;
+								va = CheckOverflow(va, vb, (pa, pb) => pa - pb, (pa, pb) => (pa + pb) < 0 ? 0xFFFF : 0x0);
+								break;
 
-					case BasicOpcodes.SUB:
-						cycles++;
-						if (skipAssign == false) ba[oa] = CheckOverflow(ba[oa], bb[ob], (pa, pb) => pa - pb, (pa, pb) => (pa + pb) < 0 ? 0xFFFF : 0x0);
-						break;
+							case BasicOpcodes.MUL:
+								cycles += 2;
+								va = CheckOverflow(va, vb, (pa, pb) => pa * pb, (pa, pb) => ((pa * pb) >> 16) & 0xFFFF);
+								break;
 
-					case BasicOpcodes.MUL:
-						cycles += 2;
-						if (skipAssign == false) ba[oa] = CheckOverflow(ba[oa], bb[ob], (pa, pb) => pa * pb, (pa, pb) => ((pa * pb) >> 16) & 0xFFFF);
-						break;
+							case BasicOpcodes.DIV:
+								cycles += 3;
+								va = vb == 0 ? (m_dcpu.Overflow = 0) : CheckOverflow(va, vb, (pa, pb) => pa / pb, (pa, pb) => ((pa << 16) / pb) & 0xFFFF);
+								break;
 
-					case BasicOpcodes.DIV:
-						cycles += 3;
-						if (skipAssign == false) ba[oa] = bb[ob] == 0 ? (m_dcpu.Overflow = 0) : CheckOverflow(ba[oa], bb[ob], (pa, pb) => pa / pb, (pa, pb) => ((pa << 16) / pb) & 0xFFFF);
-						break;
+							case BasicOpcodes.MOD:
+								cycles += 3;
+								va = vb == 0 ? (ushort)0 : (ushort)(va % vb);
+								break;
 
-					case BasicOpcodes.MOD:
-						cycles += 3;
-						if (skipAssign == false) ba[oa] = bb[ob] == 0 ? (ushort)0 : (ushort)(ba[oa] % bb[ob]);
-						break;
+							case BasicOpcodes.SHL:
+								cycles += 2;
+								va = CheckOverflow(va, vb, (pa, pb) => pa << pb, (pa, pb) => ((pa << pb) >> 16) & 0xFFFF);
+								break;
 
-					case BasicOpcodes.SHL:
-						cycles += 2;
-						if (skipAssign == false) ba[oa] = CheckOverflow(ba[oa], bb[ob], (pa, pb) => pa << pb, (pa, pb) => ((pa << pb) >> 16) & 0xFFFF);
-						break;
+							case BasicOpcodes.SHR:
+								cycles += 2;
+								va = CheckOverflow(va, vb, (pa, pb) => pa >> pb, (pa, pb) => ((pa << 16) >> pb) & 0xFFFF);
+								break;
 
-					case BasicOpcodes.SHR:
-						cycles += 2;
-						if (skipAssign == false) ba[oa] = CheckOverflow(ba[oa], bb[ob], (pa, pb) => pa >> pb, (pa, pb) => ((pa << 16) >> pb) & 0xFFFF);
-						break;
+							case BasicOpcodes.AND:
+								cycles++;
+								va = (ushort)(va & vb);
+								break;
 
-					case BasicOpcodes.AND:
-						cycles++;
-						if (skipAssign == false) ba[oa] = (ushort)(ba[oa] & bb[ob]);
-						break;
+							case BasicOpcodes.BOR:
+								cycles++;
+								va = (ushort)(va | vb);
+								break;
 
-					case BasicOpcodes.BOR:
-						cycles++;
-						if (skipAssign == false) ba[oa] = (ushort)(ba[oa] | bb[ob]);
-						break;
+							case BasicOpcodes.XOR:
+								cycles++;
+								va = (ushort)(va ^ vb);
+								break;
 
-					case BasicOpcodes.XOR:
-						cycles++;
-						if (skipAssign == false) ba[oa] = (ushort)(ba[oa] ^ bb[ob]);
-						break;
+							case BasicOpcodes.IFE:
+								cycles += 2;
+								res = va == vb;
+								break;
 
-					case BasicOpcodes.IFE:
-						cycles += 2;
-						res = ba[oa] == bb[ob];
-						break;
+							case BasicOpcodes.IFN:
+								cycles += 2;
+								res = va != vb;
+								break;
 
-					case BasicOpcodes.IFN:
-						cycles += 2;
-						res = ba[oa] != bb[ob];
-						break;
+							case BasicOpcodes.IFG:
+								cycles += 2;
+								res = va > vb;
+								break;
 
-					case BasicOpcodes.IFG:
-						cycles += 2;
-						res = ba[oa] > bb[ob];
-						break;
+							case BasicOpcodes.IFB:
+								cycles += 2;
+								res = (va & vb) != 0;
+								break;
 
-					case BasicOpcodes.IFB:
-						cycles += 2;
-						res = (ba[oa] & bb[ob]) != 0;
-						break;
+							default:
+								throw new InvalidOperationException(String.Format("Unkown basic opcode 0x{0:x1}.", (int)basicOpcode));
+						}
 
-					default:
-						throw new InvalidOperationException(String.Format("Unkown basic opcode 0x{0:x1}.", (int)basicOpcode));
-				}
-
-				// Check if we need to skip the next instruction.
-				if (res == false)
-				{
-					var skipCount = (ushort)(InstructionLength(IncrementProgramCounter()) - 1);
-					m_dcpu.ProgramCounter += skipCount;
-				}
+						// Check if we need to skip the next instruction.
+						if (res == false)
+						{
+							var skipCount = (ushort)(InstructionLength(m_dcpu.Memory[m_dcpu.ProgramCounter++]) - 1);
+							m_dcpu.ProgramCounter += skipCount;
+						}
+					});
 			}
 
 			return cycles;
